@@ -3,15 +3,31 @@ use crate::{
     UNIVERSE,
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Move {
-    pub end_square: u128,
+    pub move_type: MoveType,
     pub id: usize,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+
+pub enum MoveType {
+    Death,
+    MoveSquare(u128),
+}
+
 impl Move {
-    pub fn new(end_square: u128, id: usize) -> Self {
-        Self { end_square, id }
+    pub fn new_square(end_square: u128, id: usize) -> Self {
+        Self {
+            move_type: MoveType::MoveSquare(end_square),
+            id,
+        }
+    }
+    pub fn new_death(id: usize) -> Self {
+        Self {
+            move_type: MoveType::Death,
+            id,
+        }
     }
 }
 
@@ -19,7 +35,11 @@ impl Game {
     pub fn get_current_side_moves(&self) -> Vec<Move> {
         let mut all_things = 0;
         for snake in &self.board.snakes {
-            all_things |= snake.full;
+            let mut full = snake.full;
+            if snake.body[snake.body.len() - 1] != snake.body[snake.body.len() - 2] {
+                full ^= snake.body[snake.body.len() - 1];
+            }
+            all_things |= full ^ snake.body[0];
         }
         let snake_id = if self.side == Side::You {
             self.you_id
@@ -32,15 +52,14 @@ impl Game {
         let mut out = vec![];
 
         assert!(snake_moves.count_ones() < 4);
-
+        if snake_moves.count_ones() == 0 {
+            return vec![Move::new_death(snake_id)];
+        }
         for _ in 0..snake_moves.count_ones() {
             let end_square = 1 << snake_moves.trailing_zeros();
             snake_moves ^= end_square;
 
-            out.push(Move {
-                end_square,
-                id: snake_id,
-            })
+            out.push(Move::new_square(end_square, snake_id))
         }
 
         out

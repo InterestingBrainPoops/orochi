@@ -41,7 +41,7 @@ pub struct Search<E: Eval> {
 impl<E: Eval> Search<E> {
     pub fn new(game: Game, eval: E) -> Search<E> {
         Search {
-            tree: vec![Node::new(None, Move::new(0, 0))],
+            tree: vec![Node::new(None, Move::new_death(0))],
             start: game,
             eval,
             rng: thread_rng(),
