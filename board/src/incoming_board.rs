@@ -5,21 +5,21 @@ use crate::{
     Coordinate,
 };
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Request {
     board: IBoard,
     you: IBattlesnake,
     turn: u32,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct IBoard {
     width: u32,
     height: u32,
     food: Vec<Coordinate>,
     snakes: Vec<IBattlesnake>,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct IBattlesnake {
     id: String,
     health: u8,
