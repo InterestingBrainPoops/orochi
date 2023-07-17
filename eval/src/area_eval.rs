@@ -25,10 +25,10 @@ impl AreaEval {
         // the length difference between me and them
         let length_difference = me.body.len() as i32 - other.body.len() as i32;
         // my distance to center - their distance to center
-        let distance_to_center = (manhattan(&me.body[0].into(), &Coordinate::new(6, 6))
-            - manhattan(&other.body[0].into(), &Coordinate::new(6, 6)));
+        let distance_to_center = manhattan(&me.body[0].into(), &Coordinate::new(6, 6))
+            - manhattan(&other.body[0].into(), &Coordinate::new(6, 6));
         // my heatlh - their health
-        let health_diff = (me.health as i32 - other.health as i32);
+        let health_diff = me.health as i32 - other.health as i32;
         // my nearest food
         let mut my_nearest = 0;
         // their nearest food
@@ -71,7 +71,7 @@ impl AreaEval {
             }
         }
         // my_nearest foods - their_nearest-foods
-        let food_ownership_difference = (my_nearest - their_nearest);
+        let food_ownership_difference = my_nearest - their_nearest;
         // my owned squares
         let mut my_squares = 0;
         // their owned squares
