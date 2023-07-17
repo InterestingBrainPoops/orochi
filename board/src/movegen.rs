@@ -73,4 +73,11 @@ impl Snake {
             | (self.body[0] >> 11)
             | ((self.body[0] << 11) & UNIVERSE)
     }
+
+    pub fn square_moves(square: u128) -> u128 {
+        ((square << 1 & UNIVERSE) & !0x4008010020040080100200400801)
+            | ((square >> 1) & !0x1002004008010020040080100200400)
+            | (square >> 11)
+            | ((square << 11) & UNIVERSE)
+    }
 }

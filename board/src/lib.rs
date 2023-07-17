@@ -6,7 +6,7 @@ pub mod incoming_board;
 pub mod movegen;
 pub mod useful_board;
 
-#[derive(Deserialize, Clone, Copy, Debug)]
+#[derive(Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Coordinate {
     pub x: i8,
     pub y: i8,

@@ -6,7 +6,7 @@ use serde::Deserialize;
 use zstd::Decoder;
 
 pub struct DB {
-    positions: Vec<Game>,
+    pub positions: Vec<Game>,
 }
 struct ParticipantsEntry {
     game_id: String,
