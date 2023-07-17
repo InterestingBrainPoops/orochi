@@ -1,3 +1,5 @@
+pub mod area_eval;
+
 use board::useful_board::Game;
 
 pub fn add(left: usize, right: usize) -> usize {
