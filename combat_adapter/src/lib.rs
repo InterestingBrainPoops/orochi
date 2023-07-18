@@ -2,9 +2,10 @@ use std::io::Read;
 
 use board::{incoming_board::Request, useful_board::Game};
 use rusqlite::Connection;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use zstd::Decoder;
 
+#[derive(Serialize, Deserialize)]
 pub struct DB {
     pub positions: Vec<Game>,
 }
@@ -62,6 +63,7 @@ impl DB {
             ))
         });
         let mut out = vec![];
+        println!("converting games");
         for row in games_iter.unwrap() {
             let row = row.unwrap();
             if game_ids.contains(&row.0) {
@@ -71,6 +73,12 @@ impl DB {
                 let game: Record = serde_json::from_str(&buf).unwrap();
                 for frame in &game.turns {
                     out.push(frame.request.clone().into_usable());
+                    if out.len() >= 100 {
+                        break;
+                    }
+                }
+                if out.len() >= 100 {
+                    break;
                 }
             }
         }

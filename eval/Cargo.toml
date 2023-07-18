@@ -9,4 +9,5 @@ edition = "2021"
 board = {path = "../board"}
 nalgebra = "0.32.3"
 pathfinding = "4.3.0"
-snake_tuner = "0.5.0"
+snake_tuner = "0.5.1"
+toml = "0.7.6"

@@ -5,18 +5,27 @@ use board::{
 use nalgebra::SVector;
 use pathfinding::prelude::astar;
 use snake_tuner::{
-    activation::functions::Sigmoid,
+    activation::{functions::Sigmoid, ActivationFunction},
     evaluation::{evaluations::Linear, Eval},
 };
 
+#[derive(Clone)]
 pub struct AreaEval {
     pub eval: Linear<5, Sigmoid>,
 }
+
+impl crate::Eval for AreaEval {
+    fn get_valuation(&self, game: &Game) -> f64 {
+        self.score(game)
+    }
+}
+
 impl AreaEval {
     pub fn score(&self, position: &Game) -> f64 {
-        self.eval.forward(Self::score_i(position))
+        let x = Sigmoid;
+        x.evaluate(self.eval.forward(Self::label(position)))
     }
-    fn score_i(position: &Game) -> SVector<f64, 5> {
+    fn label(position: &Game) -> SVector<f64, 5> {
         // me
         let me = position.board.snakes[position.you_id].clone();
         // them

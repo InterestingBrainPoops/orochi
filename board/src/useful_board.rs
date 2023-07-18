@@ -1,20 +1,22 @@
+use serde::{Deserialize, Serialize};
+
 use crate::movegen::{Move, MoveType};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Game {
     pub board: Board,
     pub you_id: usize,
     pub turn: u32,
     pub side: Side,
 }
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Board {
     pub width: u32,
     pub height: u32,
     pub snakes: Vec<Snake>,
     pub food: u128,
 }
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Snake {
     pub id: usize,
     pub alive: bool,
@@ -38,7 +40,7 @@ impl Snake {
         self.health = 100;
     }
 }
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Side {
     You,
     Them,

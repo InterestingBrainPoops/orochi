@@ -2,6 +2,7 @@ use board::{movegen::Move, useful_board::Game};
 use eval::Eval;
 use rand::{rngs::ThreadRng, seq::IteratorRandom, thread_rng};
 
+#[derive(Debug)]
 struct IdxRange {
     start: usize,
     len: usize,
@@ -12,7 +13,7 @@ impl IdxRange {
         Self { start, len }
     }
 }
-
+#[derive(Debug)]
 struct Node {
     move_to_here: Move,
     num_simulations: u32,
@@ -39,6 +40,9 @@ pub struct Search<E: Eval> {
 }
 
 impl<E: Eval> Search<E> {
+    pub fn root_score(&self) -> f64 {
+        self.tree[0].score_total / self.tree[0].num_simulations as f64
+    }
     pub fn new(game: Game, eval: E) -> Search<E> {
         Search {
             tree: vec![Node::new(None, Move::new_death(0))],
@@ -47,11 +51,16 @@ impl<E: Eval> Search<E> {
             rng: thread_rng(),
         }
     }
+
     pub fn iterate(&mut self) {
         let mut game = self.start.clone();
-        let next_leaf = self.next_leaf_node(&mut game);
-        let score = self.score(&game);
+        println!("root {:?}", self.tree[0]);
 
+        let next_leaf = self.next_leaf_node(&mut game);
+
+        println!("{}", next_leaf);
+        let score = self.score(&game);
+        dbg!(score);
         self.backprop(next_leaf, score);
     }
 
@@ -63,6 +72,7 @@ impl<E: Eval> Search<E> {
         while self.tree[best_node].expanded() {
             best_node = self.pick_child(game, best_node);
         }
+        println!("cee{best_node}");
         self.expand(best_node, game);
         self.pick_random(best_node, game)
     }
@@ -87,6 +97,8 @@ impl<E: Eval> Search<E> {
     }
     fn pick_child(&self, game: &mut Game, best_node: usize) -> usize {
         let node = &self.tree[best_node];
+        dbg!(best_node);
+        dbg!((node.children.start..(node.children.start + node.children.len)));
         let highest_index = (node.children.start..(node.children.start + node.children.len))
             .max_by(|&a, &b| {
                 node.uct(&self.tree[a])
@@ -107,16 +119,25 @@ impl<E: Eval> Search<E> {
             score = 1.0 - score;
             current_node = node_idx;
         }
+
+        let node = &mut self.tree[current_node];
+        node.score_total += score;
+        node.num_simulations += 1;
     }
 }
 impl Node {
     fn expanded(&self) -> bool {
-        !self.children.len == 0
+        self.children.len != 0
     }
 
     fn uct(&self, child: &Node) -> f64 {
-        (child.score_total / child.num_simulations as f64)
+        let value = (child.score_total / child.num_simulations as f64)
             + 2f64.sqrt()
-                * (f64::ln(self.num_simulations as f64) / child.num_simulations as f64).sqrt()
+                * (f64::ln(self.num_simulations as f64) / child.num_simulations as f64).sqrt();
+        if value.is_nan() {
+            0.0
+        } else {
+            value
+        }
     }
 }

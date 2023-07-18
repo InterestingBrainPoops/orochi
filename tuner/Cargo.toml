@@ -6,3 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+snake_tuner = "0.5.0"
+board = {path = "../board"}
+eval = {path = "../eval"}
+nalgebra = { version = "0.32.3", features = ["serde", "serde-serialize"] }
+serde = { version = "1.0.171", features = ["derive"] }
+treesearch = {path = "../treesearch"}
+combat_adapter = {path = "../combat_adapter"}
+toml = "0.7.6"
+serde_json = "1.0.103"

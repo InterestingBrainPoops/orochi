@@ -3,13 +3,13 @@ use crate::{
     UNIVERSE,
 };
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Move {
     pub move_type: MoveType,
     pub id: usize,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 
 pub enum MoveType {
     Death,
@@ -51,7 +51,7 @@ impl Game {
         let mut snake_moves = self.board.snakes[snake_id].moves() & !all_things;
         let mut out = vec![];
 
-        assert!(snake_moves.count_ones() < 4);
+        assert!(snake_moves.count_ones() <= 4);
         if snake_moves.count_ones() == 0 {
             return vec![Move::new_death(snake_id)];
         }
