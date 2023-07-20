@@ -73,11 +73,11 @@ impl DB {
                 let game: Record = serde_json::from_str(&buf).unwrap();
                 for frame in &game.turns {
                     out.push(frame.request.clone().into_usable());
-                    if out.len() >= 100 {
+                    if out.len() >= 1000 {
                         break;
                     }
                 }
-                if out.len() >= 100 {
+                if out.len() >= 1000 {
                     break;
                 }
             }

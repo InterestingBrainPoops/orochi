@@ -45,7 +45,14 @@ pub enum Side {
     You,
     Them,
 }
-
+impl Side {
+    fn invert(&mut self) {
+        match self {
+            Side::You => *self = Side::Them,
+            Side::Them => *self = Side::You,
+        }
+    }
+}
 impl Game {
     pub fn step(&mut self, move_to_apply: &Move) {
         let end_square = if let MoveType::MoveSquare(square) = move_to_apply.move_type {
@@ -103,6 +110,8 @@ impl Game {
         for id in &dead {
             self.board.snakes[*id].alive = false;
         }
+
+        self.side.invert();
     }
     pub fn is_terminal(&self) -> bool {
         // What defines a terminal state in battlesnake?

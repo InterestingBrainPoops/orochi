@@ -26,6 +26,7 @@ impl AreaEval {
         x.evaluate(self.eval.forward(Self::label(position)))
     }
     fn label(position: &Game) -> SVector<f64, 5> {
+        assert!(position.board.snakes.len() <= 2);
         // me
         let me = position.board.snakes[position.you_id].clone();
         // them

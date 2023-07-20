@@ -27,11 +27,11 @@ fn main() {
     //     0.00470536898375267,
     // ];
 
-    let mut eval = AreaEval {
-        eval: Linear::<5, Sigmoid>::new::<5>(Sigmoid),
-    };
     let config = fs::read_to_string("config.toml").expect("Unable to read file");
     let config: Config = toml::from_str(&config).expect("Config was not well-formatted");
+    let mut eval = AreaEval {
+        eval: Linear::<5, Sigmoid>::from_weights(SVector::from(config.weights), Sigmoid),
+    };
     println!("Opening DB");
     let database;
     if Path::new("database.json").exists() {
@@ -48,15 +48,18 @@ fn main() {
 
     // let mut io = vec![];
     println!("Starting iteration loop");
-    for x in 0..1 {
-        println!("iteration {x}");
+    for x in 0..1000 {
+        // println!("iteration {x}");
         let frame = database.positions[x].clone();
         let mut search = Search::new(frame, eval.clone());
-        for y in 0..3 {
-            println!("iterating search {y}");
+        for y in 0..300 {
+            // println!("iterating search {y}");
             search.iterate()
         }
-
-        println!("{:?}", search.root_score());
+        if (0.5 - search.root_score()).abs() > 0.1 {
+            println!("e");
+            println!("{x}");
+        }
+        // println!("{:?}", (1.0 - search.root_score()).abs() > 0.05);
     }
 }

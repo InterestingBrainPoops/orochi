@@ -885,9 +885,9 @@ checksum = "62bb4feee49fdd9f707ef802e22365a35de4b7b299de4763d44bfea899442ff9"
 
 [[package]]
 name = "snake_tuner"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db2c651fc211d3f8d955f51c6c916d48143717d045d483d03025e453f6f8b7be"
+checksum = "4c94656cd6bbaa56f02cb0947dc0f69f53f8401e5e0acc6959f70834950ee124"
 dependencies = [
  "nalgebra",
  "rand",

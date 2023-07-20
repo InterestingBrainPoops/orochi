@@ -54,25 +54,30 @@ impl<E: Eval> Search<E> {
 
     pub fn iterate(&mut self) {
         let mut game = self.start.clone();
-        println!("root {:?}", self.tree[0]);
+        // println!("root {:?}", self.tree[0]);
 
         let next_leaf = self.next_leaf_node(&mut game);
 
-        println!("{}", next_leaf);
+        // println!("{}", next_leaf);
         let score = self.score(&game);
-        dbg!(score);
+        if (0.5 - score).abs() > 0.3 {
+            println!("e");
+        }
         self.backprop(next_leaf, score);
     }
 
     fn score(&self, game: &Game) -> f64 {
-        self.eval.get_valuation(game)
+        match game.side {
+            board::useful_board::Side::You => self.eval.get_valuation(game),
+            board::useful_board::Side::Them => 1.0 - self.eval.get_valuation(game),
+        }
     }
     fn next_leaf_node(&mut self, game: &mut Game) -> usize {
         let mut best_node = 0;
         while self.tree[best_node].expanded() {
             best_node = self.pick_child(game, best_node);
         }
-        println!("cee{best_node}");
+        // println!("cee{best_node}");
         self.expand(best_node, game);
         self.pick_random(best_node, game)
     }
@@ -97,8 +102,8 @@ impl<E: Eval> Search<E> {
     }
     fn pick_child(&self, game: &mut Game, best_node: usize) -> usize {
         let node = &self.tree[best_node];
-        dbg!(best_node);
-        dbg!((node.children.start..(node.children.start + node.children.len)));
+        // dbg!(best_node);
+        // dbg!((node.children.start..(node.children.start + node.children.len)));
         let highest_index = (node.children.start..(node.children.start + node.children.len))
             .max_by(|&a, &b| {
                 node.uct(&self.tree[a])
