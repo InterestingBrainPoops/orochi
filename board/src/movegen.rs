@@ -1,5 +1,5 @@
 use crate::{
-    useful_board::{Game, Side, Snake},
+    useful_board::{Game, Snake},
     UNIVERSE,
 };
 
@@ -32,7 +32,7 @@ impl Move {
 }
 
 impl Game {
-    pub fn get_current_side_moves(&self) -> Vec<Move> {
+    pub fn get_current_side_moves(&self, you: bool) -> Vec<Move> {
         let mut all_things = 0;
         for snake in &self.board.snakes {
             let mut full = snake.full;
@@ -41,7 +41,7 @@ impl Game {
             }
             all_things |= full ^ snake.body[0];
         }
-        let snake_id = if self.side == Side::You {
+        let snake_id = if you {
             self.you_id
         } else if self.you_id == 1 {
             0

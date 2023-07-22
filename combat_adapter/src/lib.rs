@@ -63,13 +63,15 @@ impl DB {
             ))
         });
         let mut out = vec![];
-        println!("converting games");
+        // println!("converting games");
+        println!("[");
         for row in games_iter.unwrap() {
             let row = row.unwrap();
             if game_ids.contains(&row.0) {
                 let mut x = Decoder::new(&row.1[..]).unwrap();
                 let mut buf = String::new();
                 x.read_to_string(&mut buf).unwrap();
+                println!("{buf},");
                 let game: Record = serde_json::from_str(&buf).unwrap();
                 for frame in &game.turns {
                     out.push(frame.request.clone().into_usable());
@@ -82,6 +84,8 @@ impl DB {
                 }
             }
         }
+
+        println!("]");
 
         DB { positions: out }
     }

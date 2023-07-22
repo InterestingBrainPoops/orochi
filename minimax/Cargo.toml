@@ -1,5 +1,5 @@
 [package]
-name = "treesearch"
+name = "minimax"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,5 +8,4 @@ edition = "2021"
 [dependencies]
 board = {path = "../board"}
 eval = {path = "../eval"}
-qcell = "0.5.3"
-rand = "0.8.5"
+pretty_assertions = "1.4.0"

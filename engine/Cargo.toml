@@ -6,8 +6,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = "0.6.18"
+axum = {version = "0.6.18",features = ['json'] }
 axum-macros = "0.3.7"
 serde = { version = "1.0.166", features = ["derive"] }
 tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }
 toml = "0.7.5"
+board = {path ="../board"}
+serde_json = "1.0.103"
+minimax = {path = "../minimax"}
+eval = {path = "../eval"}
+tower = "0.4.13"
+tower-http = { version = "0.4.3", features = ["add-extension"] }

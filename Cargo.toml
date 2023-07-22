@@ -1,2 +1,2 @@
 [workspace]
-members = ["eval", "engine", "board", "treesearch", "combat_adapter", "tuner"]
+members = ["eval", "engine", "board", "combat_adapter", "tuner", "minimax"]

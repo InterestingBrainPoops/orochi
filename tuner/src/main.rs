@@ -1,10 +1,16 @@
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::Path,
+    time::{Duration, Instant},
+};
 
+use board::movegen::Move;
 use eval::area_eval::AreaEval;
+use minimax::Search;
 use nalgebra::SVector;
+use pretty_assertions::{assert_eq, assert_ne};
 use serde::{Deserialize, Serialize};
 use snake_tuner::{activation::functions::Sigmoid, database, evaluation::evaluations::Linear};
-use treesearch::Search;
 
 #[derive(Deserialize, Serialize)]
 struct DB {
@@ -48,18 +54,38 @@ fn main() {
 
     // let mut io = vec![];
     println!("Starting iteration loop");
-    for x in 0..1000 {
-        // println!("iteration {x}");
-        let frame = database.positions[x].clone();
-        let mut search = Search::new(frame, eval.clone());
-        for y in 0..300 {
-            // println!("iterating search {y}");
-            search.iterate()
-        }
-        if (0.5 - search.root_score()).abs() > 0.1 {
-            println!("e");
-            println!("{x}");
-        }
-        // println!("{:?}", (1.0 - search.root_score()).abs() > 0.05);
+    let mut accum = 0.0;
+    let mut node_accum = 0;
+    let mut time_accum = Duration::from_secs_f64(0.0);
+    let mut hit_accum = 0;
+    for x in 0..50 {
+        println!("iteration {x}");
+
+        let mut frame = database.positions[x].clone();
+        // dbg!(frame.board.snakes.clone());
+        let board0 = frame.clone();
+        let mut search = Search::new(100000, eval.clone());
+        let t0 = Instant::now();
+        let score = search.iterative_deepen(&mut frame, 4);
+        let t1 = Instant::now();
+        // println!("{:?}", (t1 - t0).as_secs_f64() * 1000.0);
+        // println!(
+        //     "{:?} NPS",
+        //     search.statistics.node_count as f64 / (t1 - t0).as_secs_f64()
+        // );
+
+        time_accum += t1 - t0;
+        node_accum += search.statistics.node_count;
+        hit_accum += search.statistics.tt_hits;
+        accum += search.statistics.node_count as f64 / (t1 - t0).as_secs_f64();
+        // println!("{score}");
+        assert_eq!(board0, frame);
+        // println!("{score}, {pv_table:?}");
+        // assert!((0.5 - score).abs() > 0.2);
     }
+
+    println!("Average NPS: {}", accum / 50.0);
+    println!("Average nodes searched : {}", node_accum as f64 / 50.0);
+    println!("Average search time : {:?}", time_accum / 50);
+    println!("Average hits : {}", hit_accum as f64 / 50.0);
 }

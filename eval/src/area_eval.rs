@@ -21,6 +21,11 @@ impl crate::Eval for AreaEval {
 }
 
 impl AreaEval {
+    pub fn new(weights: [f64; 5]) -> AreaEval {
+        AreaEval {
+            eval: Linear::from_weights(SVector::from(weights), Sigmoid),
+        }
+    }
     pub fn score(&self, position: &Game) -> f64 {
         let x = Sigmoid;
         x.evaluate(self.eval.forward(Self::label(position)))
@@ -28,15 +33,15 @@ impl AreaEval {
     fn label(position: &Game) -> SVector<f64, 5> {
         assert!(position.board.snakes.len() <= 2);
         // me
-        let me = position.board.snakes[position.you_id].clone();
+        let me = &position.board.snakes[position.you_id];
         // them
         let other_id = if position.you_id == 0 { 1 } else { 0 };
-        let other = position.board.snakes[other_id].clone();
+        let other = &position.board.snakes[other_id];
         // the length difference between me and them
         let length_difference = me.body.len() as i32 - other.body.len() as i32;
         // my distance to center - their distance to center
-        let distance_to_center = manhattan(&me.body[0].into(), &Coordinate::new(6, 6))
-            - manhattan(&other.body[0].into(), &Coordinate::new(6, 6));
+        let distance_to_center = manhattan(&me.body[0], &Coordinate::new(6, 6).into_mask(11))
+            - manhattan(&other.body[0], &Coordinate::new(6, 6).into_mask(11));
         // my heatlh - their health
         let health_diff = me.health as i32 - other.health as i32;
         // my nearest food
@@ -49,17 +54,17 @@ impl AreaEval {
             food_holder ^= food;
             // my path to the food
             let my_path = astar(
-                &me.body[0].into(),
+                &me.body[0],
                 |p| successors(p, &position.board),
-                |p| manhattan(p, &Coordinate::from(food)),
-                |p| *p == Coordinate::from(food),
+                |p| manhattan(p, &food),
+                |p| *p == food,
             );
             // their path to the same food
             let their_path = astar(
-                &other.body[0].into(),
+                &other.body[0],
                 |p| successors(p, &position.board),
-                |p| manhattan(p, &Coordinate::from(food)),
-                |p| *p == Coordinate::from(food),
+                |p| manhattan(p, &food),
+                |p| *p == food,
             );
             // my distance to the food
             let my_dist = match my_path {
@@ -90,17 +95,15 @@ impl AreaEval {
         for x in 0..11 {
             for y in 0..11 {
                 // the curent coordinate
-                let thing = &Coordinate::new(x, y);
+                let thing = &Coordinate::new(x, y).into_mask(11);
                 // if the square is in either persons body, ignore it
-                if other.body.contains(&thing.into_mask(11))
-                    || me.body.contains(&thing.into_mask(11))
-                {
+                if other.body.contains(thing) || me.body.contains(thing) {
                     continue;
                 }
 
                 // my path to the square
                 let my_path = astar(
-                    &me.body[0].into(),
+                    &me.body[0],
                     |p| successors(p, &position.board),
                     |p| manhattan(p, thing),
                     |p| *p == *thing,
@@ -108,7 +111,7 @@ impl AreaEval {
 
                 // their path to the square
                 let their_path = astar(
-                    &other.body[0].into(),
+                    &other.body[0],
                     |p| successors(p, &position.board),
                     |p| manhattan(p, thing),
                     |p| *p == *thing,
@@ -146,9 +149,9 @@ impl AreaEval {
 // this is always from the perspective of the first snake (hacky fix, but it works)
 
 // successors for a given coordinate
-fn successors(coord: &Coordinate, board: &Board) -> Vec<(Coordinate, i32)> {
+fn successors(coord: &u128, board: &Board) -> Vec<(u128, i32)> {
     // possible successors
-    let possible = Snake::square_moves(coord.into_mask(11));
+    let possible = Snake::square_moves(*coord);
     let mut all_things = 0;
     for snake in &board.snakes {
         let mut full = snake.full;
@@ -163,13 +166,15 @@ fn successors(coord: &Coordinate, board: &Board) -> Vec<(Coordinate, i32)> {
     while possible.count_ones() != 0 {
         let square = 1 << possible.trailing_zeros();
         possible ^= square;
-        out.push(square.into());
+        out.push(square);
     }
     // add a weight to each one
     out.iter().map(|p| (*p, 1)).collect()
 }
 
 // manhattan distance between two coordinates
-fn manhattan(c1: &Coordinate, c2: &Coordinate) -> i32 {
+fn manhattan(c1: &u128, c2: &u128) -> i32 {
+    let c1 = Coordinate::from(*c1);
+    let c2 = Coordinate::from(*c2);
     (c1.x - c2.x).abs() as i32 + (c1.y - c2.y).abs() as i32
 }

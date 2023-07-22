@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use crate::{
-    useful_board::{Board, Game, Side, Snake},
+    useful_board::{Board, Game, Snake},
     Coordinate,
 };
 
@@ -67,7 +67,6 @@ impl Request {
                 snakes,
                 food,
             },
-            side: Side::You,
         }
     }
 }
