@@ -76,14 +76,13 @@ impl<E: Eval> Search<E> {
         }
     }
     pub fn iterative_deepen(&mut self, board: &mut Game, target_depth: u32) -> (Move, f64) {
-        let mut score = 0.0;
+        let mut out = (None, 0.0);
 
         for depth in 1..(target_depth + 1) {
-            score = self.minimax(board, depth, -100.0, 100.0, true, None);
+            out = self.minimax(board, depth, -100.0, 100.0, true, None);
         }
-        let entry = self.move_table[board].clone();
-
-        (entry.you.unwrap(), score)
+        println!("{out:?}");
+        (out.0.unwrap(), out.1)
     }
     fn sort_moves(&mut self, board: &Game, you: bool) -> Vec<Move> {
         let mut out = board.get_current_side_moves(you);
@@ -104,29 +103,45 @@ impl<E: Eval> Search<E> {
         mut beta: f64,
         maximizing: bool,
         you_move: Option<Move>,
-    ) -> f64 {
+    ) -> (Option<Move>, f64) {
         if board.is_terminal() {
-            return 0.0;
+            if board.board.snakes[board.you_id].alive {
+                return (None, 1.0);
+            } else if board.board.snakes.iter().filter(|x| x.alive).count() == 1 {
+                return (None, 0.0);
+            } else {
+                return (None, 0.5);
+            }
         } else if depth == 0 {
-            return self.eval.get_valuation(board);
+            return (None, self.eval.get_valuation(board));
         }
         if maximizing {
+            let mut best_score: f64 = -100.0;
+            let mut best_move = None;
             for you_move in &self.sort_moves(board, maximizing) {
-                self.statistics.node_count += 1;
-
-                let score = self.minimax(board, depth, alpha, beta, !maximizing, Some(*you_move));
-
-                if score > alpha {
-                    self.update_move(board, maximizing, *you_move);
-                    alpha = score;
+                if best_move.is_none() {
+                    best_move = Some(*you_move);
                 }
-                if score >= beta {
+                self.statistics.node_count += 1;
+                // PVS full window first
+                let (_, score) =
+                    self.minimax(board, depth, alpha, beta, !maximizing, Some(*you_move));
+                if score > best_score {
+                    best_score = score;
+                    best_move = Some(*you_move);
+                }
+                if best_score > alpha {
+                    alpha = best_score;
+                }
+                if best_score >= beta {
                     self.update_move(board, maximizing, *you_move);
-                    return beta;
+                    return (Some(*you_move), beta);
                 }
             }
-            alpha
+            self.update_move(board, maximizing, best_move.unwrap());
+            (best_move, best_score)
         } else {
+            let mut best_score: f64 = 100.0;
             for moves in self
                 .sort_moves(board, maximizing)
                 .iter()
@@ -135,26 +150,20 @@ impl<E: Eval> Search<E> {
                 // let eboard = board.clone();
                 let undo = board.step(&moves);
                 self.statistics.node_count += 1;
-                let score = self.minimax(board, depth - 1, alpha, beta, !maximizing, None);
+                let (_, score) = self.minimax(board, depth - 1, alpha, beta, !maximizing, None);
                 board.undo(&undo);
-                // if eboard != *board {
-                //     println!("{depth}");
-                //     println!("{:?}, {:?}", moves, undo);
-
-                //     assert_eq!(eboard, *board);
-                // }
-
-                if score < beta {
+                best_score = best_score.min(score);
+                if best_score < beta {
                     self.update_move(board, maximizing, moves[0]);
                     beta = score;
                 }
 
-                if score <= alpha {
+                if best_score <= alpha {
                     self.update_move(board, maximizing, moves[0]);
-                    return alpha;
+                    return (None, alpha);
                 }
             }
-            beta
+            (None, best_score)
         }
     }
 }

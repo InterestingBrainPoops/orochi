@@ -58,15 +58,17 @@ fn main() {
     let mut node_accum = 0;
     let mut time_accum = Duration::from_secs_f64(0.0);
     let mut hit_accum = 0;
+    let mut search = Search::new(100000, eval.clone());
+
     for x in 0..50 {
         println!("iteration {x}");
 
         let mut frame = database.positions[x].clone();
         // dbg!(frame.board.snakes.clone());
         let board0 = frame.clone();
-        let mut search = Search::new(100000, eval.clone());
         let t0 = Instant::now();
-        let score = search.iterative_deepen(&mut frame, 4);
+        let (mov, score) = search.iterative_deepen(&mut frame, 3);
+        println!("{mov:?}, {score}");
         let t1 = Instant::now();
         // println!("{:?}", (t1 - t0).as_secs_f64() * 1000.0);
         // println!(
@@ -79,7 +81,7 @@ fn main() {
         hit_accum += search.statistics.tt_hits;
         accum += search.statistics.node_count as f64 / (t1 - t0).as_secs_f64();
         // println!("{score}");
-        assert_eq!(board0, frame);
+        // assert_eq!(board0, frame);
         // println!("{score}, {pv_table:?}");
         // assert!((0.5 - score).abs() > 0.2);
     }

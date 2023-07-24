@@ -5,7 +5,7 @@ use serde::Deserialize;
 pub mod incoming_board;
 pub mod movegen;
 pub mod useful_board;
-
+mod zobrist;
 #[derive(Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Coordinate {
     pub x: i8,

@@ -1,7 +1,9 @@
 use serde::Deserialize;
 
 use crate::{
+    movegen::Move,
     useful_board::{Board, Game, Snake},
+    zobrist::ZOBRIST_TABLE,
     Coordinate,
 };
 
@@ -36,12 +38,14 @@ impl Request {
             .find(|x| x.1.id == self.you.id)
             .unwrap()
             .0;
+        let mut hash = 0;
         let mut snakes = vec![];
         for (idx, snake) in self.board.snakes.iter().enumerate() {
             let mut body = vec![];
             let mut full = 0;
             for segment in &snake.body {
                 let segment = segment.into_mask(self.board.width);
+                hash ^= ZOBRIST_TABLE[segment.trailing_zeros() as usize];
                 body.push(segment);
                 full |= segment;
             }
@@ -55,7 +59,8 @@ impl Request {
         }
         let mut food = 0_u128;
         for food_square in &self.board.food {
-            food |= food_square.into_mask(self.board.width);
+            let food_square = food_square.into_mask(self.board.width);
+            food |= food_square;
         }
 
         Game {
@@ -67,6 +72,7 @@ impl Request {
                 snakes,
                 food,
             },
+            hash,
         }
     }
 }

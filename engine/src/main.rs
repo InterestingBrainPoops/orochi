@@ -41,7 +41,7 @@ async fn main() {
         .layer(
             ServiceBuilder::new()
                 .layer(AddExtensionLayer::new(Arc::new(RwLock::new(EngineState {
-                    search: Search::new(100000, AreaEval::new(config.weights)),
+                    search: Search::new(1000000, AreaEval::new(config.weights)),
                 }))))
                 .into_inner(),
         );
@@ -92,27 +92,27 @@ async fn get_move(
         .write()
         .unwrap()
         .search
-        .iterative_deepen(&mut usable, 4);
+        .iterative_deepen(&mut usable, 2);
     let t1 = Instant::now();
     let stats = state.read().unwrap().search.statistics;
     println!("search time {:?}", (t1 - t0));
     let tdiff = (t1 - t0).as_secs_f64();
-    let move_string = if let MoveType::MoveSquare(square) = returned_move.move_type {
-        let diff = usable.board.snakes[usable.you_id].body[0].trailing_zeros() as i32
-            - square.trailing_zeros() as i32;
-        match diff {
-            -1 => "right".to_string(),
-            1 => "left".to_string(),
-            -11 => "up".to_string(),
-            11 => "down".to_string(),
-            _ => {
-                panic!("Invalid move");
+    let move_string = match returned_move.move_type {
+        MoveType::MoveSquare(square) => {
+            let diff = usable.board.snakes[usable.you_id].body[0].trailing_zeros() as i32
+                - square.trailing_zeros() as i32;
+            match diff {
+                -1 => "right".to_string(),
+                1 => "left".to_string(),
+                -11 => "up".to_string(),
+                11 => "down".to_string(),
+                _ => {
+                    panic!("Invalid move");
+                }
             }
         }
-    } else {
-        String::from_str("up").unwrap()
+        MoveType::Death => String::from_str("up").unwrap(),
     };
-
     println!("Score: {}", score);
     println!("Move direction : {}", move_string);
     println!(

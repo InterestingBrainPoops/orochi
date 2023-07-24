@@ -1,12 +1,16 @@
 use serde::{Deserialize, Serialize};
 
-use crate::movegen::{Move, MoveType};
+use crate::{
+    movegen::{Move, MoveType},
+    zobrist::ZOBRIST_TABLE,
+};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Game {
     pub board: Board,
     pub you_id: usize,
     pub turn: u32,
+    pub hash: u64,
 }
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Board {
@@ -25,24 +29,33 @@ pub struct Snake {
 }
 
 impl Snake {
-    fn move_snake(&mut self, end_square: u128) -> u128 {
+    fn move_snake(&mut self, end_square: u128, hash: &mut u64) -> u128 {
         let rm = self.body.pop().unwrap();
         if *self.body.last().unwrap() != rm {
+            *hash ^= ZOBRIST_TABLE[rm.trailing_zeros() as usize];
             self.full ^= rm;
         }
         self.body.insert(0, end_square);
         self.full |= end_square;
+        *hash ^= ZOBRIST_TABLE[end_square.trailing_zeros() as usize];
         rm
     }
-    fn unmove(&mut self, tail: u128) {
-        self.full ^= self.body.remove(0);
+    fn unmove(&mut self, tail: u128, hash: &mut u64) {
+        let head = self.body.remove(0);
+        self.full ^= head;
+        *hash ^= ZOBRIST_TABLE[head.trailing_zeros() as usize];
         self.full |= tail;
+        if *self.body.last().unwrap() != tail {
+            *hash ^= ZOBRIST_TABLE[tail.trailing_zeros() as usize];
+        }
+
         self.body.push(tail);
     }
-    fn unfeed(&mut self, health: u8) {
+    fn unfeed(&mut self, health: u8, hash: &mut u64) {
         let rm = self.body.pop().unwrap();
         if *self.body.last().unwrap() != rm {
             self.full ^= rm;
+            *hash ^= ZOBRIST_TABLE[rm.trailing_zeros() as usize];
         }
         self.health = health;
     }
@@ -64,19 +77,22 @@ impl Game {
         // bring back the dead
         for id in &undo.kills {
             self.board.snakes[*id].alive = true;
+            for body in &self.board.snakes[*id].body {
+                self.hash ^= ZOBRIST_TABLE[body.trailing_zeros() as usize];
+            }
         }
         // put the eaten food back
         self.board.food |= undo.eaten_food;
         // unfeed the snakes
         for (id, health) in &undo.snake_eats {
-            self.board.snakes[*id].unfeed(*health);
+            self.board.snakes[*id].unfeed(*health, &mut self.hash);
         }
         for snake in &mut self.board.snakes {
             snake.health += 1;
         }
         // unmove the snakes
         for (id, tail) in &undo.tails {
-            self.board.snakes[*id].unmove(*tail);
+            self.board.snakes[*id].unmove(*tail, &mut self.hash);
         }
     }
     pub fn step(&mut self, moves: &Vec<Move>) -> Undo {
@@ -102,7 +118,7 @@ impl Game {
                     // 2.
                     out.tails.push((
                         snake_move.id,
-                        self.board.snakes[snake_move.id].move_snake(square),
+                        self.board.snakes[snake_move.id].move_snake(square, &mut self.hash),
                     ));
                 }
             }
@@ -157,6 +173,9 @@ impl Game {
 
         for id in &out.kills {
             self.board.snakes[*id].alive = false;
+            for body in &self.board.snakes[*id].body {
+                self.hash ^= ZOBRIST_TABLE[body.trailing_zeros() as usize];
+            }
         }
 
         out
@@ -167,13 +186,7 @@ impl Game {
         self.board.snakes.iter().filter(|x| x.alive).count() <= 1
     }
 
-    pub fn hash(&self) -> u128 {
-        let mut out = 0;
-        for snake in &self.board.snakes {
-            out |= snake.full;
-        }
-        out |= self.board.food;
-
-        out
+    pub fn hash(&self) -> u64 {
+        self.hash
     }
 }

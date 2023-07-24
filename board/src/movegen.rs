@@ -1,15 +1,17 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{
     useful_board::{Game, Snake},
     UNIVERSE,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Move {
     pub move_type: MoveType,
     pub id: usize,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 
 pub enum MoveType {
     Death,

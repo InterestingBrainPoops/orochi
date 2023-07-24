@@ -92,12 +92,20 @@ impl AreaEval {
         // their owned squares
         let mut their_squares = 0;
         // go through all the squares on the board
+        let mut paths = [[None; 11]; 11];
         for x in 0..11 {
             for y in 0..11 {
+                if paths[x as usize][y as usize].is_some() {
+                    continue;
+                }
                 // the curent coordinate
                 let thing = &Coordinate::new(x, y).into_mask(11);
                 // if the square is in either persons body, ignore it
-                if other.body.contains(thing) || me.body.contains(thing) {
+                assert!(
+                    ((other.full | me.full) & thing == 1)
+                        == (other.body.contains(thing) || me.body.contains(thing))
+                );
+                if (other.full | me.full) & thing == 1 {
                     continue;
                 }
 
@@ -116,24 +124,49 @@ impl AreaEval {
                     |p| manhattan(p, thing),
                     |p| *p == *thing,
                 );
-                // my distance to the square
-                let my_dist = match my_path {
-                    None => 1000,                  // if i dont have a path, set it to 1k
-                    Some((path, _)) => path.len(), // if i do, set it to the length of the path
-                };
-                let their_dist = match their_path {
-                    None => 1000,                  // if they dont have a path, set it to 1k
-                    Some((path, _)) => path.len(), // if they do, set to the length of the path
-                };
-                // credit based on who is closer
-                if my_dist < their_dist {
+
+                if let (Some((path, _)), Some((path2, _))) = (&my_path, &their_path) {
+                    for (idx, x) in path.iter().enumerate() {
+                        let coord = Coordinate::from(*x);
+                        if !path2.contains(x) {
+                            paths[coord.x as usize][coord.y as usize] = Some(true);
+                            continue;
+                        }
+                        // path 2 does contain x as well as me
+                        // so if my remaining length is shorter than his, then I am closer.
+                        if path2.len() - path2.iter().position(|y| x == y).unwrap()
+                            > path.len() - idx
+                        {
+                            paths[coord.x as usize][coord.y as usize] = Some(true);
+                        }
+                    }
+
+                    for (idx, x) in path2.iter().enumerate() {
+                        let coord = Coordinate::from(*x);
+                        if !path.contains(x) {
+                            paths[coord.x as usize][coord.y as usize] = Some(false);
+                            continue;
+                        }
+                        // path 2 does contain x as well as me
+                        // so if my remaining length is shorter than his, then I am closer.
+                        if path.len() - path.iter().position(|y| x == y).unwrap()
+                            > path2.len() - idx
+                        {
+                            paths[coord.x as usize][coord.y as usize] = Some(false);
+                        }
+                    }
+                }
+            }
+        }
+        for row in &paths {
+            for square in row.iter().flatten() {
+                if *square {
                     my_squares += 1;
                 } else {
                     their_squares += 1;
                 }
             }
         }
-
         // the difference between the owned squares
         let square_ownership_difference = my_squares - their_squares;
 
