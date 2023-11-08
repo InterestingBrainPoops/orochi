@@ -7,10 +7,12 @@ use zstd::Decoder;
 
 #[derive(Serialize, Deserialize)]
 pub struct DB {
-    pub positions: Vec<Game>,
+    pub positions: Vec<(Game, String)>,
 }
 struct ParticipantsEntry {
     game_id: String,
+    snake_id: String,
+    winner: u8,
 }
 #[derive(Deserialize, Debug, Clone)]
 struct Record {
@@ -22,39 +24,56 @@ struct IRecord {
 }
 impl DB {
     pub fn new(path: String, num_snakes: usize) -> Self {
+        assert!(num_snakes > 1);
+
+        // open a connection to the database and grab all the game, snake, and winner values for each row.
         let conn = Connection::open(path).unwrap();
-        let mut stmt = conn.prepare("SELECT gid FROM participants").unwrap();
+        let mut stmt = conn
+            .prepare("SELECT gid, sid, won FROM participants")
+            .unwrap();
         let person_iter = stmt
             .query_map([], |row| {
                 Ok(ParticipantsEntry {
                     game_id: row.get(0)?,
+                    snake_id: row.get(1)?,
+                    winner: row.get(2)?,
                 })
             })
             .unwrap();
+
+        //Find all the game ids and their respective winners that match the given size requirement
         let mut thing = vec![];
-        let mut counter = 0;
-        let mut current = String::new();
+        let mut num_snake_counter = 0;
+        let mut current_game_id = String::new();
+        let mut current_winner_id = String::new();
         for x in person_iter {
             let x = x.unwrap();
-            if current.is_empty() {
-                current = x.game_id;
-                counter = 1;
+            // if the current row is the winner, update the winner.
+            if x.winner == 1 {
+                current_winner_id = x.snake_id;
+            }
+            // condition for the first entry, detected by current_game_id being empty.
+            if current_game_id.is_empty() {
+                current_game_id = x.game_id;
+                num_snake_counter = 1;
                 continue;
             }
-            if current == x.game_id {
-                counter += 1;
+            // if it matches the current game id, increase the number of snakes
+            if current_game_id == x.game_id {
+                num_snake_counter += 1;
             } else {
-                thing.push((current, counter));
-                current = x.game_id;
-                counter = 1;
+                // if it doesnt, then we have moved onto a new game
+                if num_snake_counter == num_snakes {
+                    // store the game id and the winner id.
+                    thing.push((current_game_id, current_winner_id.clone()));
+                }
+                // update the current game id and reset the snake counter
+                current_game_id = x.game_id;
+                num_snake_counter = 1;
             }
         }
-        let game_ids = thing
-            .iter()
-            .filter(|&x| x.1 == num_snakes)
-            .map(|x| x.0.clone())
-            .collect::<Vec<String>>();
-        // let mut games = vec![];
+        // Using the found game ids from above, grab the games and convert them
+        // grab all the records and game id's from the games table
         let mut stmt = conn.prepare("SELECT gid, record FROM games").unwrap();
         let games_iter = stmt.query_map([], |row| {
             Ok((
@@ -62,30 +81,24 @@ impl DB {
                 row.get::<usize, Vec<u8>>(1).unwrap(),
             ))
         });
+        // convert all the scraped games that match the participant count into the internal representation
         let mut out = vec![];
-        // println!("converting games");
-        println!("[");
         for row in games_iter.unwrap() {
             let row = row.unwrap();
-            if game_ids.contains(&row.0) {
+            if let Some(idx) = thing.iter().position(|(id, _)| id == &row.0) {
+                let winner = thing[idx].1.clone();
+                // unwrap the zstd compressed blob
                 let mut x = Decoder::new(&row.1[..]).unwrap();
                 let mut buf = String::new();
                 x.read_to_string(&mut buf).unwrap();
-                println!("{buf},");
+                // unwrap the JSON into a game record
                 let game: Record = serde_json::from_str(&buf).unwrap();
                 for frame in &game.turns {
-                    out.push(frame.request.clone().into_usable());
-                    if out.len() >= 1000 {
-                        break;
-                    }
-                }
-                if out.len() >= 1000 {
-                    break;
+                    // convert it into a usable format.
+                    out.push((frame.request.clone().into_usable(), winner.clone()));
                 }
             }
         }
-
-        println!("]");
 
         DB { positions: out }
     }

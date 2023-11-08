@@ -14,5 +14,4 @@ serde = { version = "1.0.171", features = ["derive"] }
 combat_adapter = {path = "../combat_adapter"}
 toml = "0.7.6"
 serde_json = "1.0.103"
-minimax = {path = "../minimax"}
 pretty_assertions = "1.4.0"

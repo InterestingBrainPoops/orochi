@@ -207,7 +207,6 @@ dependencies = [
  "axum-macros",
  "board",
  "eval",
- "minimax",
  "serde",
  "serde_json",
  "tokio",
@@ -521,15 +520,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
-name = "minimax"
-version = "0.1.0"
-dependencies = [
- "board",
- "eval",
- "pretty_assertions",
-]
-
-[[package]]
 name = "miniz_oxide"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -670,10 +660,6 @@ name = "percent-encoding"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b2a4787296e9989611394c33f193f676704af1686e70b8f8033ab5ba9a35a94"
-
-[[package]]
-name = "perfttest"
-version = "0.1.0"
 
 [[package]]
 name = "pin-project"
@@ -1131,7 +1117,6 @@ dependencies = [
  "board",
  "combat_adapter",
  "eval",
- "minimax",
  "nalgebra",
  "pretty_assertions",
  "serde",
