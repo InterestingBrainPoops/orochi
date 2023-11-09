@@ -1,24 +1,52 @@
 use std::{
     fs,
     path::Path,
+    sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
 
 use eval::area_eval::AreaEval;
 use nalgebra::SVector;
 use pretty_assertions::{assert_eq, assert_ne};
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use snake_tuner::{activation::functions::Sigmoid, database, evaluation::evaluations::Linear};
-
-#[derive(Deserialize, Serialize)]
+use snake_tuner::{
+    activation::{functions::Sigmoid, ActivationFunction},
+    database::{self, Database, Entry},
+    dataloader::DataLoader,
+    evaluation::{evaluations::Linear, Eval},
+    optimizer::{optimizers::SGD, Optimizer},
+};
+#[derive(Deserialize, Serialize, Clone)]
 struct DB {
-    inputs: Vec<SVector<f64, 5>>,
-    outputs: Vec<f64>,
+    entries: Vec<ComputedEntry>,
 }
+#[derive(Deserialize, Serialize, Clone, Copy)]
+struct ComputedEntry {
+    input: SVector<f64, 6>,
+    output: f64,
+}
+impl Entry<6> for ComputedEntry {
+    fn get_inputs(&self) -> SVector<f64, 6> {
+        self.input
+    }
 
+    fn get_expected_output(&self) -> f64 {
+        self.output
+    }
+}
+impl Database<6, ComputedEntry> for DB {
+    fn size(&self) -> usize {
+        self.entries.len()
+    }
+
+    fn get(&self, idx: usize) -> ComputedEntry {
+        self.entries[idx]
+    }
+}
 #[derive(Deserialize)]
 struct Config {
-    weights: [f64; 5],
+    weights: [f64; 6],
     db_path: String,
 }
 
@@ -34,7 +62,7 @@ fn main() {
     let config = fs::read_to_string("config.toml").expect("Unable to read file");
     let config: Config = toml::from_str(&config).expect("Config was not well-formatted");
     let mut eval = AreaEval {
-        eval: Linear::<5, Sigmoid>::from_weights(SVector::from(config.weights), Sigmoid),
+        eval: Linear::<6, Sigmoid>::from_weights(SVector::from(config.weights), Sigmoid),
     };
     println!("Opening DB");
     let database;
@@ -45,11 +73,56 @@ fn main() {
     } else {
         println!("scanning in from sql");
         let db = combat_adapter::DB::new(config.db_path, 2);
-        let x = serde_json::to_string(&db).unwrap();
+        let database_bar = Arc::new(Mutex::new(pbr::ProgressBar::new(db.positions.len() as u64)));
+        let o_bar = database_bar.clone();
+        let t0 = Instant::now();
+        let entries = db
+            .positions
+            .par_iter()
+            .map(move |(x, y)| {
+                let input = AreaEval::label(x);
+                let output = if &x.you_id == y { 1.0 } else { 0.0 };
+                database_bar.lock().unwrap().inc();
+                ComputedEntry { input, output }
+            })
+            .collect();
+        o_bar.lock().unwrap().finish();
+        println!("{:?}", t0.elapsed());
+        database = DB { entries };
+        let x = serde_json::to_string(&database).unwrap();
         fs::write("database.json", x).unwrap();
-        database = db;
     }
-    println!("{:?}", database.positions.len());
+    println!("{:?}", database.entries.len());
+    let mut dataloader = DataLoader::new(database.clone(), 150, true);
+    let mut grad = SGD::new(0.01);
+    let mut sum = 0.001;
+
+    for entry in &database.entries {
+        let error = (entry.output
+            - eval
+                .eval
+                .activation_fn()
+                .evaluate(eval.eval.forward(entry.input)))
+        .powf(2.0);
+        sum += error;
+    }
+    println!("{}", sum / database.entries.len() as f64);
+    for x in 0..100000 {
+        // println!("{x}");
+        // println!("{:?}", eval.eval);
+        grad.step(&mut eval.eval, dataloader.sample());
+    }
+    let mut sum = 0.0;
+    for entry in &database.entries {
+        let error = (entry.output
+            - eval
+                .eval
+                .activation_fn()
+                .evaluate(eval.eval.forward(entry.input)))
+        .powf(2.0);
+        sum += error;
+    }
+    println!("{}", sum / database.entries.len() as f64);
     // // let mut io = vec![];
     // println!("Starting iteration loop");
     // let mut accum = 0.0;

@@ -16,7 +16,3 @@ mod tests {
         assert_eq!(result, 4);
     }
 }
-
-pub trait Eval {
-    fn get_valuation(&self, game: &Game) -> f64;
-}

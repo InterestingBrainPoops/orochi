@@ -1,2 +1,3 @@
 [workspace]
 members = ["eval", "engine", "board", "combat_adapter", "tuner"]
+resolver = "2"

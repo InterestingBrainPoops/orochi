@@ -11,17 +11,11 @@ use snake_tuner::{
 
 #[derive(Clone)]
 pub struct AreaEval {
-    pub eval: Linear<5, Sigmoid>,
-}
-
-impl crate::Eval for AreaEval {
-    fn get_valuation(&self, game: &Game) -> f64 {
-        self.score(game)
-    }
+    pub eval: Linear<6, Sigmoid>,
 }
 
 impl AreaEval {
-    pub fn new(weights: [f64; 5]) -> AreaEval {
+    pub fn new(weights: [f64; 6]) -> AreaEval {
         AreaEval {
             eval: Linear::from_weights(SVector::from(weights), Sigmoid),
         }
@@ -30,7 +24,7 @@ impl AreaEval {
         let x = Sigmoid;
         x.evaluate(self.eval.forward(Self::label(position)))
     }
-    fn label(position: &Game) -> SVector<f64, 5> {
+    pub fn label(position: &Game) -> SVector<f64, 6> {
         assert!(position.board.snakes.len() == 2);
         // me
         let me = &position.board.snakes[position
@@ -177,11 +171,12 @@ impl AreaEval {
         let square_ownership_difference = my_squares - their_squares;
 
         SVector::from([
-            length_difference as f64,
-            distance_to_center as f64,
-            health_diff as f64,
-            food_ownership_difference as f64,
-            square_ownership_difference as f64,
+            length_difference as f64 / 117.0,
+            distance_to_center as f64 / 7.0,
+            health_diff as f64 / 99.0,
+            food_ownership_difference as f64 / 121.0,
+            square_ownership_difference as f64 / 121.0,
+            1.0, // bias parameter
         ])
     }
 }

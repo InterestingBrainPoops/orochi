@@ -22,6 +22,7 @@ struct Record {
 struct IRecord {
     request: Request,
 }
+
 impl DB {
     pub fn new(path: String, num_snakes: usize) -> Self {
         assert!(num_snakes > 1);
@@ -93,7 +94,10 @@ impl DB {
                 x.read_to_string(&mut buf).unwrap();
                 // unwrap the JSON into a game record
                 let game: Record = serde_json::from_str(&buf).unwrap();
-                for frame in &game.turns {
+                if game.turns.len() <= 20 {
+                    continue;
+                }
+                for frame in &game.turns[0..(game.turns.len() - 1)] {
                     // convert it into a usable format.
                     out.push((frame.request.clone().into_usable(), winner.clone()));
                 }
